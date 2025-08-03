@@ -19,5 +19,40 @@
   ],
   "dependencies": {
     "tslib": "^2.3.0"
+  },
+  "keywords": [
+    "vendure",
+    "plugin",
+    "payment",
+    "cryptocurrency",
+    "nowpayments",
+    "bitcoin",
+    "ethereum",
+    "crypto"
+  ],
+  "author": "Vendure Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/psychomet/vendure-nowpayments.git",
+    "directory": "packages/vendure-plugin-nowpayments"
+  },
+  "bugs": {
+    "url": "https://github.com/psychomet/vendure-nowpayments/issues"
+  },
+  "homepage": "https://github.com/psychomet/vendure-nowpayments#readme",
+  "peerDependencies": {
+    "@vendure/core": "^2.0.0",
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "vendure": {
+    "compatibility": "^2.0.0"
   }
 }

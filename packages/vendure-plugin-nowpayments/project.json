@@ -15,6 +15,14 @@
         "main": "packages/vendure-plugin-nowpayments/src/index.ts",
         "stripLeadingPaths": true
       }
+    },
+    "release": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "npx semantic-release-plus --extends ./packages/vendure-plugin-nowpayments/release.config.js",
+        "parallel": false
+      }
     }
   }
 }

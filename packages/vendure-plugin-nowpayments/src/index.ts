@@ -4,4 +4,3 @@ export * from './lib/nowpayments.service';
 export * from './lib/nowpayments.controller';
 export * from './lib/types';
 export * from './lib/constants';
-export * from './lib/nowpayments.config';
