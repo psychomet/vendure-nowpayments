@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# shellcheck disable=SC2217
+(exec < /dev/tty && node_modules/.bin/cz --hook) || true < /dev/null

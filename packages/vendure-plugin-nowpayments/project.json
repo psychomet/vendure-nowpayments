@@ -1,0 +1,20 @@
+{
+  "name": "vendure-plugin-nowpayments",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/vendure-plugin-nowpayments/src",
+  "projectType": "library",
+  "tags": ["type:util"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "packages/vendure-plugin-nowpayments/dist",
+        "tsConfig": "packages/vendure-plugin-nowpayments/tsconfig.lib.json",
+        "packageJson": "packages/vendure-plugin-nowpayments/package.json",
+        "main": "packages/vendure-plugin-nowpayments/src/index.ts",
+        "stripLeadingPaths": true
+      }
+    }
+  }
+}
