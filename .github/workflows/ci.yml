@@ -133,4 +133,4 @@ jobs:
           echo "Starting release process..."
           echo "GitHub token available: ${{ secrets.GH_TOKEN != '' }}"
           echo "NPM token available: ${{ secrets.NPM_TOKEN != '' }}"
-          npx nx release vendure-plugin-nowpayments --verbose
+          npx nx release vendure-plugin-nowpayments --publish

@@ -56,7 +56,8 @@
     },
     "git": {
       "push": true,
-      "tag": true
+      "tag": true,
+      "commitMessage": "chore(release): publish ${version} [skip ci]"
     },
     "releaseTagPattern": "vendure-plugin-nowpayments-v{version}"
   },
