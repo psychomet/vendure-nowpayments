@@ -16,13 +16,12 @@
         "stripLeadingPaths": true
       }
     },
-    "release": {
-      "executor": "nx:run-commands",
-      "outputs": [],
-      "options": {
-        "command": "npx semantic-release-plus --extends ./packages/vendure-plugin-nowpayments/release.config.js",
-        "parallel": false
-      }
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": [
+        "^nx-release-publish"
+      ],
+      "options": {}
     }
   }
 }

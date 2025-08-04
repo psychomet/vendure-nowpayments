@@ -119,5 +119,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npx nx run vendure-plugin-nowpayments:release
-          npx semantic-release-plus
+          npx nx release vendure-plugin-nowpayments

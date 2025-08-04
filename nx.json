@@ -44,8 +44,21 @@
   ],
   "release": {
     "version": {
-      "preVersionCommand": "npx nx run-many -t build"
-    }
+      "preVersionCommand": "npx nx run-many -t build",
+      "conventionalCommits": true,
+      "fallbackCurrentVersionResolver": "disk"
+    },
+    "changelog": {
+      "projectChangelogs": {
+        "createRelease": "github"
+      },
+      "automaticFromRef": true
+    },
+    "git": {
+      "push": true,
+      "tag": true
+    },
+    "releaseTagPattern": "vendure-plugin-nowpayments-v{version}"
   },
   "targetDefaults": {
     "test": {

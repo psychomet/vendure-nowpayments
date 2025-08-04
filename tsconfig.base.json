@@ -22,6 +22,11 @@
     "strictPropertyInitialization": false,
     "resolveJsonModule": true,
     "sourceMap": false,
-    "customConditions": ["development"]
+    "customConditions": ["development"],
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "vendure-plugin-nowpayments": ["packages/vendure-plugin-nowpayments/src/index.ts"]
+    }
   }
 }
