@@ -113,10 +113,24 @@ jobs:
           fi
       - run: |
           npx nx run vendure-plugin-nowpayments:build
+      - name: Configure Git
+        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+      - name: Setup NPM Authentication
+        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+          echo "access=public" >> ~/.npmrc
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npx nx release vendure-plugin-nowpayments
+          echo "Starting release process..."
+          echo "GitHub token available: ${{ secrets.GH_TOKEN != '' }}"
+          echo "NPM token available: ${{ secrets.NPM_TOKEN != '' }}"
+          npx nx release vendure-plugin-nowpayments --verbose
