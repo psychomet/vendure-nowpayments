@@ -227,3 +227,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md) for a list of changes between versions. 
+
+Add Release commit
