@@ -1,3 +1,13 @@
+## 0.1.3 (2025-08-04)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add vendure logger ([1125b5c](https://github.com/psychomet/vendure-nowpayments/commit/1125b5c))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.2 (2025-08-04)
 
 ### 🩹 Fixes
