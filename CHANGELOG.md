@@ -1,3 +1,13 @@
+## 0.1.4 (2025-08-04)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add some dependecies libraries ([a7846b2](https://github.com/psychomet/vendure-nowpayments/commit/a7846b2))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.3 (2025-08-04)
 
 ### 🩹 Fixes
