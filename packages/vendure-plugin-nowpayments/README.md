@@ -16,7 +16,7 @@ A cryptocurrency payment gateway plugin for Vendure that integrates with NOWPaym
 ## Installation
 
 ```bash
-npm install @vendure/nowpayments-plugin
+npm install vendure-plugin-nowpayments
 ```
 
 ## Configuration
