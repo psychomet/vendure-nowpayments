@@ -1,109 +1,208 @@
-# VendureNowpayments
+# Vendure NOWPayments Plugin
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A [Vendure](https://www.vendure.io/) plugin that integrates [NOWPayments](https://nowpayments.io/) cryptocurrency payment processing into your e-commerce store.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## 🚀 Features
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+- **Cryptocurrency Payments**: Accept Bitcoin, Ethereum, and 1000+ other cryptocurrencies
+- **IPN (Instant Payment Notification)**: Real-time payment status updates
+- **Secure Payment Processing**: Built-in signature verification for webhook security
+- **Vendure Integration**: Seamless integration with Vendure's payment system
+- **TypeScript Support**: Full TypeScript support with type safety
 
-## Generate a library
+## 📦 Installation
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+```bash
+npm install vendure-plugin-nowpayments
 ```
 
-## Run tasks
+## 🔧 Configuration
 
-To build the library use:
+### 1. Add the plugin to your Vendure config
 
-```sh
-npx nx build pkg1
+```typescript
+import { VendureConfig } from '@vendure/core';
+import { NOWPaymentsPlugin } from 'vendure-plugin-nowpayments';
+
+export const config: VendureConfig = {
+  plugins: [
+    NOWPaymentsPlugin.init({
+      apiKey: 'your-nowpayments-api-key',
+      ipnSecret: 'your-ipn-secret-key',
+      sandbox: false, // Set to true for testing
+    }),
+  ],
+  // ... rest of your config
+};
 ```
 
-To run any task with Nx use:
+### 2. Environment Variables
 
-```sh
-npx nx <target> <project-name>
+```bash
+# Required
+NOWPAYMENTS_API_KEY=your-api-key-here
+NOWPAYMENTS_IPN_SECRET=your-ipn-secret-here
+
+# Optional
+NOWPAYMENTS_SANDBOX=true  # Set to true for testing
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 🎯 Usage
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Payment Method Setup
 
-## Versioning and releasing
+1. **Create a Payment Method** in your Vendure admin
+2. **Configure NOWPayments** with your API credentials
+3. **Set up IPN endpoint** at `/nowpayments/ipn`
 
-To version and release the library use
+### API Endpoints
 
+#### IPN Webhook
 ```
-npx nx release
-```
-
-Pass `--dry-run` to see what would happen without actually releasing the library.
-
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
+POST /nowpayments/ipn
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+The plugin automatically handles IPN (Instant Payment Notification) from NOWPayments to update order status.
 
-```sh
-npx nx sync:check
+## 🔐 Security
+
+- **Signature Verification**: All IPN requests are verified using HMAC-SHA256
+- **Request Validation**: Comprehensive validation of payment data
+- **Error Handling**: Secure error responses without exposing sensitive information
+
+## 🛠️ Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm/yarn/pnpm
+- Vendure 3.0+
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/psychomet/vendure-nowpayments.git
+cd vendure-nowpayments
+
+# Install dependencies
+npm install
+
+# Build the plugin
+npx nx build vendure-plugin-nowpayments
+
+# Run tests
+npx nx test vendure-plugin-nowpayments
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+### Project Structure
 
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+```
+packages/vendure-plugin-nowpayments/
+├── src/
+│   ├── lib/
+│   │   ├── constants.ts          # Plugin constants
+│   │   ├── nowpayments.controller.ts  # IPN endpoint
+│   │   ├── nowpayments.service.ts     # Core business logic
+│   │   ├── nowpayments.plugin.ts      # Plugin definition
+│   │   └── types.ts                   # TypeScript types
+│   └── index.ts                  # Main entry point
+├── package.json
+└── tsconfig.json
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+## 🧪 Testing
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Run unit tests
+npx nx test vendure-plugin-nowpayments
 
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+# Run with coverage
+npx nx test vendure-plugin-nowpayments --coverage
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 📦 Building
 
-## Install Nx Console
+```bash
+# Build the plugin
+npx nx build vendure-plugin-nowpayments
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+# Build with type checking
+npx nx typecheck vendure-plugin-nowpayments
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🚀 Release
 
-## Useful links
+The project uses [Nx Release](https://nx.dev/features/manage-releases) for automated versioning and publishing.
 
-Learn more:
+### Automatic Releases
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+The plugin automatically releases when you push conventional commits to the main branch:
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Minor version bump
+git commit -m "feat: add new payment method"
+
+# Patch version bump
+git commit -m "fix: resolve authentication issue"
+
+# No version bump
+git commit -m "docs: update README"
+```
+
+### Manual Release
+
+```bash
+# Preview release
+npx nx release vendure-plugin-nowpayments --dry-run
+
+# Create release
+npx nx release vendure-plugin-nowpayments --yes
+```
+
+## 📋 Supported Cryptocurrencies
+
+NOWPayments supports 1000+ cryptocurrencies including:
+
+- Bitcoin (BTC)
+- Ethereum (ETH)
+- Litecoin (LTC)
+- Bitcoin Cash (BCH)
+- And many more...
+
+See the [NOWPayments supported currencies](https://nowpayments.io/supported-coins) for the complete list.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
+- Write tests for new features
+- Update documentation as needed
+- Ensure TypeScript compilation passes
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: [Vendure Docs](https://www.vendure.io/docs)
+- **Issues**: [GitHub Issues](https://github.com/psychomet/vendure-nowpayments/issues)
+- **Discord**: [Vendure Community](https://discord.gg/vendure)
+
+## 🙏 Acknowledgments
+
+- [Vendure](https://www.vendure.io/) - The amazing e-commerce framework
+- [NOWPayments](https://nowpayments.io/) - Cryptocurrency payment processing
+- [Nx](https://nx.dev/) - Monorepo tooling
+
+---
+
+Made with ❤️ by the Vendure community
