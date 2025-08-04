@@ -26,7 +26,7 @@ Add the plugin to your Vendure config:
 ```ts
 // vendure-config.ts
 import { VendureConfig } from '@vendure/core';
-import { NowpaymentsPlugin } from '@vendure/nowpayments-plugin';
+import { NowpaymentsPlugin } from 'vendure-plugin-nowpayments';
 
 export const config: VendureConfig = {
   // ... other config
