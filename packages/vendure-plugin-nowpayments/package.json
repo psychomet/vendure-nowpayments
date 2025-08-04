@@ -51,6 +51,6 @@
     "node": ">=18.0.0"
   },
   "vendure": {
-    "compatibility": "^2.0.0"
+    "compatibility": "^3.0.0"
   }
 }
