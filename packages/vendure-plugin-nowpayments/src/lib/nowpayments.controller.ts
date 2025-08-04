@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Headers, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
-import { RequestContextService } from '@vendure/core';
+import { RequestContextService, Logger } from '@vendure/core';
 import { NOWPaymentsService } from './nowpayments.service';
 import { NOWPaymentsIPNData } from './types';
+import { loggerCtx } from './constants';
 
 @Controller('nowpayments')
 export class NOWPaymentsController {
@@ -31,7 +32,7 @@ export class NOWPaymentsController {
                 res.status(HttpStatus.BAD_REQUEST).send('IPN processing failed');
             }
         } catch (error) {
-            console.error('IPN processing error:', error);
+            Logger.error('IPN processing error', loggerCtx, error instanceof Error ? error.message : String(error));
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Internal server error');
         }
     }
