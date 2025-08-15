@@ -1,3 +1,14 @@
+## 0.1.5 (2025-08-15)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** remove unused existing payment ([5599425](https://github.com/psychomet/vendure-nowpayments/commit/5599425))
+- **vendure-plugin-nowpayments:** wip ([555f8e2](https://github.com/psychomet/vendure-nowpayments/commit/555f8e2))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.4 (2025-08-04)
 
 ### 🩹 Fixes
