@@ -136,7 +136,7 @@ export class NOWPaymentsService {
         };
 
         const invoiceData: NOWPaymentsInvoiceData = {
-            source: 'vendure',
+            // source: 'vendure',
             ipn_callback_url: this.getIpnUrl(),
             price_currency: order.currencyCode,
             success_url: this.getSuccessUrl(order),

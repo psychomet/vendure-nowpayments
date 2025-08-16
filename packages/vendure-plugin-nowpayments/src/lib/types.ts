@@ -36,7 +36,7 @@ export interface NOWPaymentsPaymentData {
 }
 
 export interface NOWPaymentsInvoiceData {
-    source: string;
+    // source: string;
     ipn_callback_url: string;
     price_currency: string;
     success_url: string;
