@@ -42,7 +42,9 @@ export const nowPaymentsPaymentHandler = new PaymentMethodHandler({
                 amount: amount,
                 state: 'Authorized' as const,
                 metadata: {
-                    redirectUrl,
+                    public: {
+                      redirectUrl
+                    },
                     orderId: order.id,
                     paymentMethod: 'nowpayments',
                     nowPaymentsOrderId: orderId,
