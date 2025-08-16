@@ -1,3 +1,14 @@
+## 0.1.7 (2025-08-16)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add redirectUrl to public metadata ([52b7d28](https://github.com/psychomet/vendure-nowpayments/commit/52b7d28))
+- **vendure-plugin-nowpayments:** wip package-lock.json ([58e947b](https://github.com/psychomet/vendure-nowpayments/commit/58e947b))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.6 (2025-08-16)
 
 ### 🩹 Fixes
