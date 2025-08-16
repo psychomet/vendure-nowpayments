@@ -1,3 +1,14 @@
+## 0.1.8 (2025-08-16)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** redefine  NOWPayments payment already exists for this order ([25706ff](https://github.com/psychomet/vendure-nowpayments/commit/25706ff))
+- **vendure-plugin-nowpayments:** check again payment already exists ([d13569a](https://github.com/psychomet/vendure-nowpayments/commit/d13569a))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.7 (2025-08-16)
 
 ### 🩹 Fixes
