@@ -1,9 +1,10 @@
-import { 
-    PaymentMethodHandler, 
-    CreatePaymentResult, 
-    SettlePaymentResult, 
-    LanguageCode,
-    Injector
+import {
+  PaymentMethodHandler,
+  CreatePaymentResult,
+  SettlePaymentResult,
+  LanguageCode,
+  Injector,
+  PaymentState,
 } from '@vendure/core';
 import { NOWPaymentsService } from './nowpayments.service';
 
@@ -22,15 +23,15 @@ export const nowPaymentsPaymentHandler = new PaymentMethodHandler({
     createPayment: async (ctx, order, amount, args, metadata): Promise<CreatePaymentResult> => {
         try {
             // Check if a NOWPayments payment already exists for this order
-            // const existingPayment = order.payments.find(p => p.method === 'nowpayments');
-            // if (existingPayment) {
-            //     // If payment already exists, return the existing payment state
-            //     return {
-            //         amount: existingPayment.amount,
-            //         state: existingPayment.state as any,
-            //         metadata: existingPayment.metadata,
-            //     };
-            // }
+            const existingPayment = order.payments.find(p => p.method === 'nowpayments');
+            if (existingPayment) {
+                // If payment already exists, return the existing payment state
+                return {
+                    amount: existingPayment.amount,
+                    state: existingPayment.state as PaymentState as any,
+                    metadata: existingPayment.metadata,
+                };
+            }
 
             // Generate payment URL based on configuration
             const redirectUrl = nowPaymentsService.useInvoices 
