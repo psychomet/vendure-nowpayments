@@ -1,3 +1,13 @@
+## 0.1.10 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** impl error handling translation logger ([657c35a](https://github.com/psychomet/vendure-nowpayments/commit/657c35a))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.9 (2025-08-17)
 
 ### 🩹 Fixes
