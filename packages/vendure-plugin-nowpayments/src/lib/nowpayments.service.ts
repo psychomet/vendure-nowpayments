@@ -316,7 +316,11 @@ export class NOWPaymentsService {
                 
                 // Save the updated metadata
                 await this.connection.getRepository(ctx, Payment).save(settledPayment);
-                Logger.info(`Payment settled successfully for order ${order.code}`, loggerCtx);
+                
+                // Transition order to PaymentSettled state
+                await this.orderService.transitionToState(ctx, order.id, 'PaymentSettled');
+                
+                Logger.info(`Payment settled successfully and order transitioned to PaymentSettled - Order: ${order.code}`, loggerCtx);
                 break;
             }
 
@@ -435,7 +439,11 @@ export class NOWPaymentsService {
                 
                 // Save the updated metadata
                 await this.connection.getRepository(ctx, Payment).save(expiredPayment);
-                Logger.info(`Payment cancelled due to expired status - Order: ${order.code}`, loggerCtx);
+                
+                // Transition order back to ArrangingPayment state
+                await this.orderService.transitionToState(ctx, order.id, 'ArrangingPayment');
+                
+                Logger.info(`Payment cancelled due to expired status and order transitioned to ArrangingPayment - Order: ${order.code}`, loggerCtx);
                 break;
             }
 
@@ -463,7 +471,11 @@ export class NOWPaymentsService {
                 
                 // Save the updated metadata
                 await this.connection.getRepository(ctx, Payment).save(failedPayment);
-                Logger.info(`Payment cancelled due to failed status - Order: ${order.code}`, loggerCtx);
+                
+                // Transition order back to ArrangingPayment state
+                await this.orderService.transitionToState(ctx, order.id, 'ArrangingPayment');
+                
+                Logger.info(`Payment cancelled due to failed status and order transitioned to ArrangingPayment - Order: ${order.code}`, loggerCtx);
                 break;
             }
 
@@ -491,4 +503,4 @@ export class NOWPaymentsService {
             await this.connection.getRepository(ctx, Payment).save(payment);
         }
     }
-} 
+}
