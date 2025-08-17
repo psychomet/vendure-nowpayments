@@ -1,3 +1,13 @@
+## 0.1.9 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add is_fixed_rate and is_fee_paid_by_user ([4d8c7f0](https://github.com/psychomet/vendure-nowpayments/commit/4d8c7f0))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.8 (2025-08-16)
 
 ### 🩹 Fixes
