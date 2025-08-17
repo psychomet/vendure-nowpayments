@@ -1,3 +1,13 @@
+## 0.1.11 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** change isFixedRate and isPaidFeeByUser fields ([ba3fb73](https://github.com/psychomet/vendure-nowpayments/commit/ba3fb73))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.10 (2025-08-17)
 
 ### 🩹 Fixes
