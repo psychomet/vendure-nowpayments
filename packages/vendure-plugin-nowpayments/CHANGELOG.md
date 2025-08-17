@@ -1,3 +1,13 @@
+## 0.1.12 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add state waiting and expired ([c81f49f](https://github.com/psychomet/vendure-nowpayments/commit/c81f49f))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.11 (2025-08-17)
 
 ### 🩹 Fixes
