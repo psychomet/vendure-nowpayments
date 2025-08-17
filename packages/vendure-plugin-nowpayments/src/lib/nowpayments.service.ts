@@ -121,8 +121,14 @@ export class NOWPaymentsService {
 
             const data = await response.json() as any;
             
+            // Log the full API response for debugging
+            Logger.info(`NOWPayments API response for order ${order.code}: ${JSON.stringify(data)}`, loggerCtx);
+            
+            // Try to extract invoice ID from different possible field names
+            const invoiceId = data.invoice_id || data.id || data.payment_id || data.iid || 'unknown';
+            
             // Log successful invoice creation
-            Logger.info(`Successfully created NOWPayments invoice for order ${order.code} - Invoice URL: ${data.invoice_url} - Invoice ID: ${data.invoice_id}`, loggerCtx);
+            Logger.info(`Successfully created NOWPayments invoice for order ${order.code} - Invoice URL: ${data.invoice_url} - Invoice ID: ${invoiceId}`, loggerCtx);
             
             return data.invoice_url;
         } catch (error: any) {
@@ -228,12 +234,14 @@ export class NOWPaymentsService {
                 return false;
             }
 
+            const orderWithPayments = await this.orderService.findOne(ctx, order.id, ['payments']);
+
             // Load the order with payments relation using repository
-            const orderRepo = this.connection.getRepository(ctx, Order);
-            const orderWithPayments = await orderRepo.findOne({
-                where: { id: order.id },
-                relations: ['payments']
-            });
+            // const orderRepo = this.connection.getRepository(ctx, Order);
+            // const orderWithPayments =  await orderRepo.findOne({
+            //     where: { id: order.id },
+            //     relations: ['payments']
+            // });
 
             if (!orderWithPayments) {
                 Logger.error(`Order with payments not found: ${order.id}`);
@@ -268,7 +276,8 @@ export class NOWPaymentsService {
 
     private async processPaymentStatus(ctx: RequestContext, order: Order, ipnData: NOWPaymentsIPNData): Promise<void> {
         const paymentStatus = ipnData.payment_status;
-        const payment = order.payments.find(p => p.method === 'nowpayments');
+        Logger.info(`Processing payment status: ${paymentStatus}`, loggerCtx);
+        const payment = order.payments.find(p => p.method === 'nowpayments' && p.state === 'Authorized');
 
         if (!payment) {
             Logger.error(`No NOWPayments payment found for order: ${order.code}`);
@@ -282,11 +291,17 @@ export class NOWPaymentsService {
         };
 
         switch (paymentStatus) {
-            case 'finished':
+            case 'finished': {
+                Logger.info(`Processing 'finished' payment status for order ${order.code}`, loggerCtx);
                 // Use PaymentService to properly settle the payment
                 await this.paymentService.settlePayment(ctx, payment.id);
-                payment.metadata = {
-                    ...payment.metadata,
+                
+                // Reload the payment to get the updated state using PaymentService
+                const settledPayment = await this.paymentService.findOneOrThrow(ctx, payment.id);
+                
+                // Update metadata on the reloaded payment
+                settledPayment.metadata = {
+                    ...settledPayment.metadata,
                     settled: true,
                     paymentStatus: 'finished',
                     fullIpnData,
@@ -298,9 +313,15 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                
+                // Save the updated metadata
+                await this.connection.getRepository(ctx, Payment).save(settledPayment);
+                Logger.info(`Payment settled successfully for order ${order.code}`, loggerCtx);
                 break;
+            }
 
             case 'partially_paid':
+                Logger.info(`Processing 'partially_paid' payment status for order ${order.code}`, loggerCtx);
                 // Keep payment in Authorized state but update metadata
                 payment.metadata = {
                     ...payment.metadata,
@@ -314,11 +335,11 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                Logger.info(`Payment metadata updated for partially_paid status - Order: ${order.code}`, loggerCtx);
                 break;
 
             case 'confirming':
-            case 'confirmed':
-            case 'sending':
+                Logger.info(`Processing 'confirming' payment status for order ${order.code}`, loggerCtx);
                 // Keep payment in Authorized state but update metadata
                 payment.metadata = {
                     ...payment.metadata,
@@ -332,9 +353,47 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                Logger.info(`Payment metadata updated for confirming status - Order: ${order.code}`, loggerCtx);
+                break;
+
+            case 'confirmed':
+                Logger.info(`Processing 'confirmed' payment status for order ${order.code}`, loggerCtx);
+                // Keep payment in Authorized state but update metadata
+                payment.metadata = {
+                    ...payment.metadata,
+                    paymentStatus,
+                    fullIpnData,
+                    outcome_currency: ipnData.outcome_currency,
+                    outcome_amount: ipnData.outcome_amount,
+                    pay_currency: ipnData.pay_currency,
+                    pay_amount: ipnData.pay_amount,
+                    actually_paid: ipnData.actually_paid,
+                    payment_id: ipnData.payment_id,
+                    invoice_id: ipnData.invoice_id
+                };
+                Logger.info(`Payment metadata updated for confirmed status - Order: ${order.code}`, loggerCtx);
+                break;
+
+            case 'sending':
+                Logger.info(`Processing 'sending' payment status for order ${order.code}`, loggerCtx);
+                // Keep payment in Authorized state but update metadata
+                payment.metadata = {
+                    ...payment.metadata,
+                    paymentStatus,
+                    fullIpnData,
+                    outcome_currency: ipnData.outcome_currency,
+                    outcome_amount: ipnData.outcome_amount,
+                    pay_currency: ipnData.pay_currency,
+                    pay_amount: ipnData.pay_amount,
+                    actually_paid: ipnData.actually_paid,
+                    payment_id: ipnData.payment_id,
+                    invoice_id: ipnData.invoice_id
+                };
+                Logger.info(`Payment metadata updated for sending status - Order: ${order.code}`, loggerCtx);
                 break;
 
             case 'waiting':
+                Logger.info(`Processing 'waiting' payment status for order ${order.code}`, loggerCtx);
                 // Payment is waiting for user action (e.g., user needs to complete payment)
                 // Keep payment in Authorized state but update metadata
                 payment.metadata = {
@@ -349,13 +408,20 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                Logger.info(`Payment metadata updated for waiting status - Order: ${order.code}`, loggerCtx);
                 break;
 
-            case 'expired':
+            case 'expired': {
+                Logger.info(`Processing 'expired' payment status for order ${order.code}`, loggerCtx);
                 // Payment has expired, cancel the payment
                 await this.paymentService.cancelPayment(ctx, payment.id);
-                payment.metadata = {
-                    ...payment.metadata,
+                
+                // Reload the payment to get the updated state using PaymentService
+                const expiredPayment = await this.paymentService.findOneOrThrow(ctx, payment.id);
+                
+                // Update metadata on the reloaded payment
+                expiredPayment.metadata = {
+                    ...expiredPayment.metadata,
                     paymentStatus: 'expired',
                     fullIpnData,
                     outcome_currency: ipnData.outcome_currency,
@@ -366,13 +432,24 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                
+                // Save the updated metadata
+                await this.connection.getRepository(ctx, Payment).save(expiredPayment);
+                Logger.info(`Payment cancelled due to expired status - Order: ${order.code}`, loggerCtx);
                 break;
+            }
 
-            case 'failed':
+            case 'failed': {
+                Logger.info(`Processing 'failed' payment status for order ${order.code}`, loggerCtx);
                 // Use PaymentService to properly decline the payment
                 await this.paymentService.cancelPayment(ctx, payment.id);
-                payment.metadata = {
-                    ...payment.metadata,
+                
+                // Reload the payment to get the updated state using PaymentService
+                const failedPayment = await this.paymentService.findOneOrThrow(ctx, payment.id);
+                
+                // Update metadata on the reloaded payment
+                failedPayment.metadata = {
+                    ...failedPayment.metadata,
                     paymentStatus: 'failed',
                     fullIpnData,
                     outcome_currency: ipnData.outcome_currency,
@@ -383,10 +460,15 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                
+                // Save the updated metadata
+                await this.connection.getRepository(ctx, Payment).save(failedPayment);
+                Logger.info(`Payment cancelled due to failed status - Order: ${order.code}`, loggerCtx);
                 break;
+            }
 
             default:
-                Logger.warn(`Unknown payment status: ${paymentStatus}`);
+                Logger.warn(`Unknown payment status: ${paymentStatus} for order ${order.code}`, loggerCtx);
                 // Still store the IPN data even for unknown statuses
                 payment.metadata = {
                     ...payment.metadata,
@@ -400,9 +482,13 @@ export class NOWPaymentsService {
                     payment_id: ipnData.payment_id,
                     invoice_id: ipnData.invoice_id
                 };
+                Logger.info(`Payment metadata updated for unknown status: ${paymentStatus} - Order: ${order.code}`, loggerCtx);
         }
 
-        // Save the payment metadata updates
-        await this.connection.getRepository(ctx, Payment).save(payment);
+        // Only save metadata updates for payments that don't change state
+        // State-changing payments (finished, expired, failed) are already saved above
+        if (!['finished', 'expired', 'failed'].includes(paymentStatus)) {
+            await this.connection.getRepository(ctx, Payment).save(payment);
+        }
     }
 } 
