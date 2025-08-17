@@ -35,8 +35,8 @@ export interface NOWPaymentsPaymentData {
     tax: number;
     shipping: number;
     products: any[];
-    isFixedRate?: boolean;
-    isFeePaidByUser?: boolean;
+    is_fixed_rate?: boolean;
+    is_fee_paid_by_user?: boolean;
 }
 
 export interface NOWPaymentsInvoiceData {
@@ -48,8 +48,8 @@ export interface NOWPaymentsInvoiceData {
     order_id: string;
     order_description: string;
     price_amount: string;
-    isFixedRate?: boolean;
-    isFeePaidByUser?: boolean;
+    is_fixed_rate?: boolean;
+    is_fee_paid_by_user?: boolean;
 }
 
 export interface NOWPaymentsIPNData {

@@ -159,8 +159,8 @@ export class NOWPaymentsService {
                 price: line.unitPrice / 100,
                 total: line.linePriceWithTax / 100
             })),
-            isFixedRate: this.isFixedRate,
-            isFeePaidByUser: this.isFeePaidByUser
+            is_fixed_rate: this.isFixedRate,
+            is_fee_paid_by_user: this.isFeePaidByUser
         };
 
         return paymentData;
@@ -191,8 +191,8 @@ export class NOWPaymentsService {
             order_id: orderId,
             order_description: JSON.stringify(description),
             price_amount: (total / 100).toFixed(8),
-            isFixedRate: this.isFixedRate,
-            isFeePaidByUser: this.isFeePaidByUser
+            is_fixed_rate: this.isFixedRate,
+            is_fee_paid_by_user: this.isFeePaidByUser
         };
 
         return invoiceData;
