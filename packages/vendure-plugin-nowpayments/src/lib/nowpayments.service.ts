@@ -8,13 +8,12 @@ import {
     Logger,
     Payment,
 } from '@vendure/core';
-import { NOWPAYMENTS_PLUGIN_OPTIONS } from './constants';
+import { NOWPAYMENTS_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { PluginInitOptions, NOWPaymentsPaymentData, NOWPaymentsInvoiceData, NOWPaymentsIPNData } from './types';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class NOWPaymentsService {
-    private readonly logger = new Logger();
 
     constructor(
         private orderService: OrderService,
@@ -73,6 +72,22 @@ export class NOWPaymentsService {
         
         try {
             const baseUrl = this.sandbox ? 'https://api-sandbox.nowpayments.io' : 'https://api.nowpayments.io';
+            
+            // Log the request data for debugging
+            Logger.info(`Creating NOWPayments invoice for order ${order.code} - URL: ${baseUrl}/v1/invoice, Sandbox: ${this.sandbox}, Data: ${JSON.stringify(invoiceData)}`, loggerCtx);
+            
+            // Validate required fields before sending
+            const requiredFields = ['ipn_callback_url', 'price_currency', 'success_url', 'cancel_url', 'order_id', 'price_amount'];
+            const missingFields = requiredFields.filter(field => !invoiceData[field as keyof NOWPaymentsInvoiceData]);
+            
+            if (missingFields.length > 0) {
+                Logger.error(`Missing required fields for invoice creation: ${missingFields.join(', ')} - Order: ${order.code}`, loggerCtx);
+                throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+            }
+            
+            // Log the exact request being sent
+            Logger.info(`Sending invoice request to NOWPayments - Headers: ${JSON.stringify({ 'Content-Type': 'application/json', 'X-Api-Key': this.apiKey ? '***' + this.apiKey.slice(-4) : 'missing' })} - Body: ${JSON.stringify(invoiceData)}`, loggerCtx);
+            
             const response = await fetch(`${baseUrl}/v1/invoice`, {
                 method: 'POST',
                 headers: {
@@ -83,13 +98,35 @@ export class NOWPaymentsService {
             });
 
             if (!response.ok) {
-                throw new Error(`Invoice creation failed: ${response.status} ${response.statusText}`);
+                // Get the response body for detailed error information
+                let errorBody = '';
+                try {
+                    errorBody = await response.text();
+                } catch (e) {
+                    errorBody = 'Unable to read response body';
+                }
+                
+                // Get response headers for debugging
+                const responseHeaders: Record<string, string> = {};
+                response.headers.forEach((value, key) => {
+                    responseHeaders[key] = value;
+                });
+                
+                // Log detailed error information
+                const apiKeySuffix = this.apiKey ? '***' + this.apiKey.slice(-4) : 'missing';
+                Logger.error(`Invoice creation failed: ${response.status} ${response.statusText} - Response: ${errorBody} - Request: ${JSON.stringify(invoiceData)} - API Key: ${apiKeySuffix} - URL: ${baseUrl}/v1/invoice - Order: ${order.code} - Order ID: ${invoiceData.order_id} - Amount: ${invoiceData.price_amount} ${invoiceData.price_currency} - Response Headers: ${JSON.stringify(responseHeaders)}`, loggerCtx);
+                
+                throw new Error(`Invoice creation failed: ${response.status} ${response.statusText} - ${errorBody}`);
             }
 
             const data = await response.json() as any;
+            
+            // Log successful invoice creation
+            Logger.info(`Successfully created NOWPayments invoice for order ${order.code} - Invoice URL: ${data.invoice_url} - Invoice ID: ${data.invoice_id}`, loggerCtx);
+            
             return data.invoice_url;
         } catch (error: any) {
-            this.logger.error(`Failed to create NOWPayments invoice: ${error.message}`);
+            Logger.error(`Failed to create NOWPayments invoice: ${error.message} - Order: ${order.code} - Request Data: ${JSON.stringify(invoiceData)}`, loggerCtx);
             throw error;
         }
     }
@@ -178,7 +215,7 @@ export class NOWPaymentsService {
         try {
             // Verify HMAC signature
             if (!this.verifySignature(ipnData, signature)) {
-                this.logger.error('Invalid IPN signature');
+                Logger.error('Invalid IPN signature');
                 return false;
             }
 
@@ -187,7 +224,7 @@ export class NOWPaymentsService {
             const order = await this.orderService.findOneByCode(ctx, orderCode);
             
             if (!order) {
-                this.logger.error(`Order not found: ${orderCode}`);
+                Logger.error(`Order not found: ${orderCode}`);
                 return false;
             }
 
@@ -199,7 +236,7 @@ export class NOWPaymentsService {
             });
 
             if (!orderWithPayments) {
-                this.logger.error(`Order with payments not found: ${order.id}`);
+                Logger.error(`Order with payments not found: ${order.id}`);
                 return false;
             }
 
@@ -208,7 +245,7 @@ export class NOWPaymentsService {
             
             return true;
         } catch (error: any) {
-            this.logger.error(`IPN processing error: ${error.message}`);
+            Logger.error(`IPN processing error: ${error.message}`);
             return false;
         }
     }
@@ -234,7 +271,7 @@ export class NOWPaymentsService {
         const payment = order.payments.find(p => p.method === 'nowpayments');
 
         if (!payment) {
-            this.logger.error(`No NOWPayments payment found for order: ${order.code}`);
+            Logger.error(`No NOWPayments payment found for order: ${order.code}`);
             return;
         }
 
@@ -315,7 +352,7 @@ export class NOWPaymentsService {
                 break;
 
             default:
-                this.logger.warn(`Unknown payment status: ${paymentStatus}`);
+                Logger.warn(`Unknown payment status: ${paymentStatus}`);
                 // Still store the IPN data even for unknown statuses
                 payment.metadata = {
                     ...payment.metadata,
