@@ -1,3 +1,14 @@
+## 0.1.14 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add transition order state ([5682b7f](https://github.com/psychomet/vendure-nowpayments/commit/5682b7f))
+- **vendure-plugin-nowpayments:** wip package-lock..json ([feb4804](https://github.com/psychomet/vendure-nowpayments/commit/feb4804))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.13 (2025-08-17)
 
 ### 🩹 Fixes
