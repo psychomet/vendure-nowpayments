@@ -1,3 +1,13 @@
+## 0.1.13 (2025-08-17)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** update state payment ([16a122e](https://github.com/psychomet/vendure-nowpayments/commit/16a122e))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.12 (2025-08-17)
 
 ### 🩹 Fixes
