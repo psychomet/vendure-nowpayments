@@ -55,6 +55,19 @@ NOWPAYMENTS_SANDBOX=true  # Set to true for testing
 2. **Configure NOWPayments** with your API credentials
 3. **Set up IPN endpoint** at `/nowpayments/ipn`
 
+### Payment Statuses
+
+The plugin handles the following NOWPayments payment statuses:
+
+- **finished** → PaymentSettled (Payment completed successfully)
+- **partially_paid** → PaymentAuthorized (Partial payment received)
+- **confirming** → PaymentAuthorized (Payment is being confirmed)
+- **confirmed** → PaymentAuthorized (Payment confirmed on blockchain)
+- **sending** → PaymentAuthorized (Payment is being sent)
+- **waiting** → PaymentAuthorized (Payment is waiting for user action)
+- **expired** → PaymentDeclined (Payment has expired)
+- **failed** → PaymentDeclined (Payment failed)
+
 ### API Endpoints
 
 #### IPN Webhook

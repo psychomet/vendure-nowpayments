@@ -100,6 +100,8 @@ NOWPAYMENTS_INVOICE_PREFIX=VC-
 | `confirming` | PaymentAuthorized | Payment is being confirmed |
 | `confirmed` | PaymentAuthorized | Payment confirmed on blockchain |
 | `sending` | PaymentAuthorized | Payment is being sent |
+| `waiting` | PaymentAuthorized | Payment is waiting for user action |
+| `expired` | PaymentDeclined | Payment has expired |
 | `failed` | PaymentDeclined | Payment failed |
 
 ### Configuration Options

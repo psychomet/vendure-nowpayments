@@ -334,6 +334,40 @@ export class NOWPaymentsService {
                 };
                 break;
 
+            case 'waiting':
+                // Payment is waiting for user action (e.g., user needs to complete payment)
+                // Keep payment in Authorized state but update metadata
+                payment.metadata = {
+                    ...payment.metadata,
+                    paymentStatus,
+                    fullIpnData,
+                    outcome_currency: ipnData.outcome_currency,
+                    outcome_amount: ipnData.outcome_amount,
+                    pay_currency: ipnData.pay_currency,
+                    pay_amount: ipnData.pay_amount,
+                    actually_paid: ipnData.actually_paid,
+                    payment_id: ipnData.payment_id,
+                    invoice_id: ipnData.invoice_id
+                };
+                break;
+
+            case 'expired':
+                // Payment has expired, cancel the payment
+                await this.paymentService.cancelPayment(ctx, payment.id);
+                payment.metadata = {
+                    ...payment.metadata,
+                    paymentStatus: 'expired',
+                    fullIpnData,
+                    outcome_currency: ipnData.outcome_currency,
+                    outcome_amount: ipnData.outcome_amount,
+                    pay_currency: ipnData.pay_currency,
+                    pay_amount: ipnData.pay_amount,
+                    actually_paid: ipnData.actually_paid,
+                    payment_id: ipnData.payment_id,
+                    invoice_id: ipnData.invoice_id
+                };
+                break;
+
             case 'failed':
                 // Use PaymentService to properly decline the payment
                 await this.paymentService.cancelPayment(ctx, payment.id);
