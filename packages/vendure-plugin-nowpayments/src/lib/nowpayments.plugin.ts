@@ -59,6 +59,8 @@ export class NowpaymentsPlugin {
      *     formSubmissionMethod: true,
      *     debugEmail: process.env.NOWPAYMENTS_DEBUG_EMAIL || '',
      *     debugPostUrl: process.env.NOWPAYMENTS_DEBUG_POST_URL || '',
+     *     is_fixed_rate: false,
+     *     is_fee_paid_by_user: false,
      * }),
      * ```
      */

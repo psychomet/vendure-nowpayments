@@ -51,6 +51,14 @@ export class NOWPaymentsService {
         return this.options.sandbox || false;
     }
 
+    get isFixedRate(): boolean {
+        return this.options.is_fixed_rate || false;
+    }
+
+    get isFeePaidByUser(): boolean {
+        return this.options.is_fee_paid_by_user || false;
+    }
+
     async generatePaymentUrl(ctx: RequestContext, order: Order): Promise<string> {
         const paymentData = await this.getPaymentData(ctx, order);
         const jsonData = JSON.stringify(paymentData);
@@ -113,7 +121,9 @@ export class NOWPaymentsService {
                 quantity: line.quantity,
                 price: line.unitPrice / 100,
                 total: line.linePriceWithTax / 100
-            }))
+            })),
+            isFixedRate: this.isFixedRate,
+            isFeePaidByUser: this.isFeePaidByUser
         };
 
         return paymentData;
@@ -143,7 +153,9 @@ export class NOWPaymentsService {
             cancel_url: this.getCancelUrl(order),
             order_id: orderId,
             order_description: JSON.stringify(description),
-            price_amount: (total / 100).toFixed(8)
+            price_amount: (total / 100).toFixed(8),
+            isFixedRate: this.isFixedRate,
+            isFeePaidByUser: this.isFeePaidByUser
         };
 
         return invoiceData;

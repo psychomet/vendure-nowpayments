@@ -43,15 +43,11 @@ export const config: VendureConfig = {
       formSubmissionMethod: true,
       debugEmail: process.env.NOWPAYMENTS_DEBUG_EMAIL || '',
       debugPostUrl: process.env.NOWPAYMENTS_DEBUG_POST_URL || '',
+      is_fixed_rate: false, // Use fixed rate pricing
+      is_fee_paid_by_user: false, // Fees paid by merchant
     }),
     // ... other plugins
   ],
-  paymentOptions: {
-    paymentMethodHandlers: [
-      // ... other payment handlers
-      nowPaymentsPaymentHandler, // This is exported from the plugin
-    ],
-  },
 };
 ```
 
@@ -121,6 +117,8 @@ NOWPAYMENTS_INVOICE_PREFIX=VC-
 | `formSubmissionMethod` | boolean | ❌ | true | Use form submission method |
 | `debugEmail` | string | ❌ | - | Email for debug notifications |
 | `debugPostUrl` | string | ❌ | - | URL for debug POST notifications |
+| `is_fixed_rate` | boolean | ❌ | false | Use fixed rate pricing for cryptocurrency conversions |
+| `is_fee_paid_by_user` | boolean | ❌ | false | Whether transaction fees are paid by the user |
 
 ### Supported Cryptocurrencies
 
@@ -145,6 +143,16 @@ The plugin extends the Vendure GraphQL API with the following:
 ### IPN Endpoint
 
 - `POST /nowpayments/ipn` - Webhook endpoint for NOWPayments IPN callbacks
+
+### Payment Flow URLs
+
+The plugin automatically generates the following URLs for payment flows:
+
+- **Success URL**: `{host}/checkout/confirmation/{orderCode}` - Redirected to after successful payment
+- **Cancel URL**: `{host}/checkout/cancel/{orderCode}` - Redirected to if payment is cancelled
+- **IPN URL**: `{host}/nowpayments/ipn` - Webhook endpoint for payment notifications
+
+**Note**: Replace `{host}` with your actual Vendure server URL (e.g., `https://yourdomain.com`).
 
 ## Security Features
 

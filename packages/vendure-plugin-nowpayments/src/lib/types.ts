@@ -17,6 +17,8 @@ export interface PluginInitOptions {
     simpleTotal?: boolean;
     useInvoices?: boolean;
     sandbox?: boolean;
+    is_fixed_rate?: boolean;
+    is_fee_paid_by_user?: boolean;
 }
 
 export interface NOWPaymentsPaymentData {
@@ -33,6 +35,8 @@ export interface NOWPaymentsPaymentData {
     tax: number;
     shipping: number;
     products: any[];
+    isFixedRate?: boolean;
+    isFeePaidByUser?: boolean;
 }
 
 export interface NOWPaymentsInvoiceData {
@@ -44,6 +48,8 @@ export interface NOWPaymentsInvoiceData {
     order_id: string;
     order_description: string;
     price_amount: string;
+    isFixedRate?: boolean;
+    isFeePaidByUser?: boolean;
 }
 
 export interface NOWPaymentsIPNData {
