@@ -1,3 +1,13 @@
+## 0.1.15 (2025-08-19)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** change Order state arragingPayment to canceled ([443cc3e](https://github.com/psychomet/vendure-nowpayments/commit/443cc3e))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.14 (2025-08-17)
 
 ### 🩹 Fixes
