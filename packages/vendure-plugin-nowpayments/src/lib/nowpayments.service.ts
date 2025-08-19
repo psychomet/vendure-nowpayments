@@ -440,10 +440,10 @@ export class NOWPaymentsService {
                 // Save the updated metadata
                 await this.connection.getRepository(ctx, Payment).save(expiredPayment);
                 
-                // Transition order back to ArrangingPayment state
-                await this.orderService.transitionToState(ctx, order.id, 'ArrangingPayment');
+                // Cancel the order completely
+                await this.orderService.transitionToState(ctx, order.id, 'Cancelled');
                 
-                Logger.info(`Payment cancelled due to expired status and order transitioned to ArrangingPayment - Order: ${order.code}`, loggerCtx);
+                Logger.info(`Payment cancelled due to expired status and order cancelled - Order: ${order.code}`, loggerCtx);
                 break;
             }
 
@@ -472,10 +472,10 @@ export class NOWPaymentsService {
                 // Save the updated metadata
                 await this.connection.getRepository(ctx, Payment).save(failedPayment);
                 
-                // Transition order back to ArrangingPayment state
-                await this.orderService.transitionToState(ctx, order.id, 'ArrangingPayment');
+                // Cancel the order completely
+                await this.orderService.transitionToState(ctx, order.id, 'Cancelled');
                 
-                Logger.info(`Payment cancelled due to failed status and order transitioned to ArrangingPayment - Order: ${order.code}`, loggerCtx);
+                Logger.info(`Payment cancelled due to failed status and order cancelled - Order: ${order.code}`, loggerCtx);
                 break;
             }
 
