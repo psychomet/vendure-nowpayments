@@ -12,8 +12,6 @@ env:
 jobs:
   main:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
         working-directory: ${{ github.workspace }}
@@ -120,14 +118,12 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-      - name: Setup Node.js for npm publishing
+      - name: Setup NPM Authentication
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: '${{ matrix.node-version }}'
-          registry-url: 'https://registry.npmjs.org'
-          # NPM_TOKEN will be automatically detected from secrets
-          # Make sure NPM_TOKEN is set in GitHub Actions secrets
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+          echo "access=public" >> ~/.npmrc
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         env:
