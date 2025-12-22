@@ -124,6 +124,11 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
           echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
           echo "access=public" >> ~/.npmrc
+      - name: Verify NPM Authentication
+        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
+        run: |
+          npm whoami || echo "NPM authentication check failed"
+          npm view vendure-plugin-nowpayments version 2>/dev/null || echo "Package does not exist yet (this is expected for first publish)"
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         env:
