@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { 
     RequestContext, 
     Order, 
@@ -8,7 +7,6 @@ import {
     TransactionalConnection,
     Logger,
     Payment,
-    Injector,
 } from '@vendure/core';
 import { NOWPAYMENTS_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { PluginInitOptions, NOWPaymentsPaymentData, NOWPaymentsInvoiceData, NOWPaymentsIPNData } from './types';
@@ -22,7 +20,6 @@ export class NOWPaymentsService {
         private paymentService: PaymentService,
         private connection: TransactionalConnection,
         @Inject(NOWPAYMENTS_PLUGIN_OPTIONS) private options: PluginInitOptions,
-        private moduleRef: ModuleRef,
     ) {}
 
     get useInvoices(): boolean {

@@ -3,12 +3,7 @@ import {
   CreatePaymentResult,
   SettlePaymentResult,
   LanguageCode,
-  Injector,
-  PaymentState,
 } from '@vendure/core';
-import { NOWPaymentsService } from './nowpayments.service';
-
-let nowPaymentsService: NOWPaymentsService;
 
 export const nowPaymentsPaymentHandler = new PaymentMethodHandler({
     code: 'nowpayments',
@@ -16,10 +11,7 @@ export const nowPaymentsPaymentHandler = new PaymentMethodHandler({
         languageCode: LanguageCode.en,
         value: 'NOWPayments Cryptocurrency Payment Gateway',
     }],
-    args: {}, // Empty args since we use dependency injection
-    init(injector: Injector) {
-        nowPaymentsService = injector.get(NOWPaymentsService);
-    },
+    args: {},
     createPayment: async (ctx, order, amount, args, metadata): Promise<CreatePaymentResult> => {
         // Payment is already settled in NOWPayments by the time the webhook in nowpayments.controller.ts
         // adds the payment to the order via addPaymentToOrder
