@@ -134,18 +134,25 @@ jobs:
       - name: Remove token-based auth to force OIDC
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         run: |
-          # Remove any token-based authentication to ensure OIDC is used
-          # Check both ~/.npmrc and the temp location used by setup-node
-          NPMRC_LOCATIONS=("$HOME/.npmrc" "$NPM_CONFIG_USERCONFIG" "/home/runner/work/_temp/.npmrc")
-          for npmrc_file in "${NPMRC_LOCATIONS[@]}"; do
-            if [ -f "$npmrc_file" ]; then
-              echo "Cleaning $npmrc_file..."
-              sed -i '/_authToken/d' "$npmrc_file" 2>/dev/null || true
-              sed -i '/\/\/registry.npmjs.org\/:_authToken/d' "$npmrc_file" 2>/dev/null || true
-              echo "Cleaned $npmrc_file"
-            fi
-          done
-          # Note: NODE_AUTH_TOKEN env var persists across steps, but removing from .npmrc should help
+          # If NPM_TOKEN exists in secrets, setup-node will use it instead of OIDC
+          # We need to remove token-based auth from .npmrc to force OIDC
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "⚠️  NODE_AUTH_TOKEN is set - removing token-based auth from .npmrc"
+            NPMRC_LOCATIONS=("$HOME/.npmrc" "$NPM_CONFIG_USERCONFIG" "/home/runner/work/_temp/.npmrc")
+            for npmrc_file in "${NPMRC_LOCATIONS[@]}"; do
+              if [ -f "$npmrc_file" ]; then
+                echo "Cleaning $npmrc_file..."
+                sed -i '/_authToken/d' "$npmrc_file" 2>/dev/null || true
+                sed -i '/\/\/registry.npmjs.org\/:_authToken/d' "$npmrc_file" 2>/dev/null || true
+                echo "Cleaned $npmrc_file"
+              fi
+            done
+            echo ""
+            echo "⚠️  IMPORTANT: Remove NPM_TOKEN from GitHub secrets to enable OIDC!"
+            echo "   Go to: https://github.com/psychomet/vendure-nowpayments/settings/secrets/actions"
+          else
+            echo "✓ No token detected - OIDC should work if trusted publisher is configured"
+          fi
       - name: Verify package and trusted publisher setup
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         run: |
