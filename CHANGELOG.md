@@ -1,3 +1,13 @@
+## 0.1.18 (2025-12-22)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add auth npm to ci ([5be3be4](https://github.com/psychomet/vendure-nowpayments/commit/5be3be4))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.17 (2025-12-22)
 
 ### 🩹 Fixes
