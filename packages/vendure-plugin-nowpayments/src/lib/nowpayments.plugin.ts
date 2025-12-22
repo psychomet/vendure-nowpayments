@@ -20,6 +20,8 @@ import { nowPaymentsPaymentHandler } from './nowpayments-payment.handler';
 import { NOWPAYMENTS_PLUGIN_OPTIONS } from './constants';
 import { PluginInitOptions } from './types';
 
+console.log('hello');
+
 @VendurePlugin({
     imports: [PluginCommonModule],
     providers: [
