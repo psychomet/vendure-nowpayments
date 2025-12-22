@@ -135,11 +135,17 @@ jobs:
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         run: |
           # Remove any token-based authentication to ensure OIDC is used
-          if [ -f ~/.npmrc ]; then
-            sed -i '/_authToken/d' ~/.npmrc || true
-            sed -i '/\/\/registry.npmjs.org\/:_authToken/d' ~/.npmrc || true
-          fi
-          unset NODE_AUTH_TOKEN || true
+          # Check both ~/.npmrc and the temp location used by setup-node
+          NPMRC_LOCATIONS=("$HOME/.npmrc" "$NPM_CONFIG_USERCONFIG" "/home/runner/work/_temp/.npmrc")
+          for npmrc_file in "${NPMRC_LOCATIONS[@]}"; do
+            if [ -f "$npmrc_file" ]; then
+              echo "Cleaning $npmrc_file..."
+              sed -i '/_authToken/d' "$npmrc_file" 2>/dev/null || true
+              sed -i '/\/\/registry.npmjs.org\/:_authToken/d' "$npmrc_file" 2>/dev/null || true
+              echo "Cleaned $npmrc_file"
+            fi
+          done
+          # Note: NODE_AUTH_TOKEN env var persists across steps, but removing from .npmrc should help
       - name: Verify package and trusted publisher setup
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         run: |
