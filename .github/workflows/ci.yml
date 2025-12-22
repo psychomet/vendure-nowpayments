@@ -136,9 +136,17 @@ jobs:
             echo "Package exists in registry"
           else
             echo "Package does not exist yet - this will be a first-time publish"
-            echo "Make sure trusted publisher is configured on npmjs.com:"
+          fi
+          echo ""
+          echo "Verifying OIDC setup..."
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "⚠️  WARNING: NODE_AUTH_TOKEN is set - this suggests token-based auth instead of OIDC"
+            echo "Make sure trusted publisher is configured on npmjs.com with:"
             echo "  - Repository: psychomet/vendure-nowpayments"
             echo "  - Workflow file: .github/workflows/ci.yml"
+            echo "  - Environment name: npm-publish"
+          else
+            echo "✓ No token detected - OIDC should be used"
           fi
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
