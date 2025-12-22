@@ -1,3 +1,13 @@
+## 0.1.25 (2025-12-22)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** wip ([bb8e6cf](https://github.com/psychomet/vendure-nowpayments/commit/bb8e6cf))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.24 (2025-12-22)
 
 ### 🩹 Fixes
