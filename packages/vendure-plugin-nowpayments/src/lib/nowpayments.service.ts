@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { 
     RequestContext, 
     Order, 
@@ -7,6 +8,7 @@ import {
     TransactionalConnection,
     Logger,
     Payment,
+    Injector,
 } from '@vendure/core';
 import { NOWPAYMENTS_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { PluginInitOptions, NOWPaymentsPaymentData, NOWPaymentsInvoiceData, NOWPaymentsIPNData } from './types';
@@ -19,7 +21,8 @@ export class NOWPaymentsService {
         private orderService: OrderService,
         private paymentService: PaymentService,
         private connection: TransactionalConnection,
-        @Inject(NOWPAYMENTS_PLUGIN_OPTIONS) private options: PluginInitOptions
+        @Inject(NOWPAYMENTS_PLUGIN_OPTIONS) private options: PluginInitOptions,
+        private moduleRef: ModuleRef,
     ) {}
 
     get useInvoices(): boolean {
@@ -56,6 +59,18 @@ export class NOWPaymentsService {
 
     get isFeePaidByUser(): boolean {
         return this.options.is_fee_paid_by_user || false;
+    }
+
+    /**
+     * Creates a payment intent (payment URL or invoice URL) for the given order.
+     * This is similar to Stripe's createPaymentIntent but returns a URL instead of a client secret.
+     */
+    async createPaymentIntent(ctx: RequestContext, order: Order): Promise<string> {
+        if (this.useInvoices) {
+            return this.generateInvoiceUrl(ctx, order);
+        } else {
+            return this.generatePaymentUrl(ctx, order);
+        }
     }
 
     async generatePaymentUrl(ctx: RequestContext, order: Order): Promise<string> {
@@ -258,7 +273,7 @@ export class NOWPaymentsService {
         }
     }
 
-    private verifySignature(data: any, receivedSignature: string): boolean {
+    verifySignature(data: any, receivedSignature: string): boolean {
         // Sort the data keys alphabetically
         const sortedData = Object.keys(data).sort().reduce((result, key) => {
             result[key] = data[key];

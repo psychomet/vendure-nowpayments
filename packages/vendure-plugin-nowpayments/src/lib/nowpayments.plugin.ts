@@ -11,8 +11,10 @@ import {
     Type, 
     VendurePlugin,
 } from '@vendure/core';
+import { gql } from 'graphql-tag';
 import { NOWPaymentsService } from './nowpayments.service';
 import { NOWPaymentsController } from './nowpayments.controller';
+import { NOWPaymentsResolver } from './nowpayments.resolver';
 import { nowPaymentsPaymentHandler } from './nowpayments-payment.handler';
 
 import { NOWPAYMENTS_PLUGIN_OPTIONS } from './constants';
@@ -23,7 +25,6 @@ import { PluginInitOptions } from './types';
     providers: [
         { provide: NOWPAYMENTS_PLUGIN_OPTIONS, useFactory: () => NowpaymentsPlugin.options },
         NOWPaymentsService,
-        NOWPaymentsController
     ],
     controllers: [NOWPaymentsController],
     configuration: config => {
@@ -35,6 +36,14 @@ import { PluginInitOptions } from './types';
         // strategies etc. can be configured here by
         // modifying the `config` object.
         return config;
+    },
+    shopApiExtensions: {
+        schema: gql`
+            extend type Mutation {
+                createNowPaymentsPaymentIntent: String!
+            }
+        `,
+        resolvers: [NOWPaymentsResolver],
     },
     compatibility: '^3.0.0',
 })
