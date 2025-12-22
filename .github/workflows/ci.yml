@@ -12,9 +12,7 @@ env:
 jobs:
   main:
     runs-on: ubuntu-latest
-    environment: npm-publish
     permissions:
-      id-token: write  # Required for OIDC trusted publishing
       contents: read
     defaults:
       run:
@@ -128,74 +126,15 @@ jobs:
         with:
           node-version: '${{ matrix.node-version }}'
           registry-url: 'https://registry.npmjs.org'
-          # Do NOT provide token parameter - this allows OIDC trusted publishing to work
-          # If NPM_TOKEN exists in secrets (repository or environment), setup-node will use it instead of OIDC
-          always-auth: false
-      - name: Verify OIDC setup and remove token if present
-        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
-        run: |
-          echo "Checking authentication setup..."
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            echo "⚠️  NODE_AUTH_TOKEN is set - this means NPM_TOKEN exists in secrets"
-            echo ""
-            echo "To enable OIDC trusted publishing, you must remove NPM_TOKEN from:"
-            echo "1. Repository secrets: https://github.com/psychomet/vendure-nowpayments/settings/secrets/actions"
-            echo "2. Environment secrets (npm-publish): https://github.com/psychomet/vendure-nowpayments/settings/environments/npm-publish"
-            echo ""
-            echo "Removing token from .npmrc to prevent token-based auth..."
-            NPMRC_LOCATIONS=("$HOME/.npmrc" "$NPM_CONFIG_USERCONFIG" "/home/runner/work/_temp/.npmrc")
-            for npmrc_file in "${NPMRC_LOCATIONS[@]}"; do
-              if [ -f "$npmrc_file" ]; then
-                echo "Cleaning $npmrc_file..."
-                sed -i '/_authToken/d' "$npmrc_file" 2>/dev/null || true
-                sed -i '/\/\/registry.npmjs.org\/:_authToken/d' "$npmrc_file" 2>/dev/null || true
-                echo "Cleaned $npmrc_file"
-              fi
-            done
-            echo ""
-            echo "⚠️  After removing NPM_TOKEN, OIDC will be used automatically"
-          else
-            echo "✓ No token detected - OIDC should work if trusted publisher is configured"
-          fi
-      - name: Verify package and trusted publisher setup
-        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
-        run: |
-          echo "Checking if package exists..."
-          if npm view vendure-plugin-nowpayments version 2>/dev/null; then
-            echo "Package exists in registry"
-          else
-            echo "Package does not exist yet - this will be a first-time publish"
-          fi
-          echo ""
-          echo "Verifying OIDC setup..."
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            echo "⚠️  WARNING: NODE_AUTH_TOKEN is set - this suggests token-based auth instead of OIDC"
-            echo ""
-            echo "To fix this:"
-            echo "1. Remove NPM_TOKEN from GitHub Actions secrets (Settings → Secrets and variables → Actions)"
-            echo "2. Ensure trusted publisher is configured on npmjs.com:"
-            echo "   - Go to: https://www.npmjs.com/package/vendure-plugin-nowpayments/settings"
-            echo "   - Navigate to: Publishing access → Trusted publishers"
-            echo "   - Add trusted publisher with:"
-            echo "     * Repository: psychomet/vendure-nowpayments"
-            echo "     * Workflow file: .github/workflows/ci.yml"
-            echo "     * Environment name: npm-publish"
-            echo ""
-            echo "Current .npmrc contents:"
-            if [ -f ~/.npmrc ]; then
-              cat ~/.npmrc | grep -v "authToken" || echo "No auth tokens found in .npmrc"
-            else
-              echo "No .npmrc file found"
-            fi
-          else
-            echo "✓ No token detected - OIDC should be used"
-          fi
+          # NPM_TOKEN will be automatically detected from secrets
+          # Make sure NPM_TOKEN is set in GitHub Actions secrets
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Starting release process..."
           echo "GitHub token available: ${{ secrets.GH_TOKEN != '' }}"
-          echo "Using npm trusted publishing (OIDC)"
+          echo "NPM token available: ${{ secrets.NPM_TOKEN != '' }}"
           npx nx release vendure-plugin-nowpayments --yes
