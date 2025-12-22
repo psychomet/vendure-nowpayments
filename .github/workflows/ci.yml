@@ -12,6 +12,9 @@ env:
 jobs:
   main:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC trusted publishing
+      contents: read
     defaults:
       run:
         working-directory: ${{ github.workspace }}
@@ -118,24 +121,18 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-      - name: Setup NPM Authentication
+      - name: Setup Node.js for npm publishing
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
-          echo "access=public" >> ~/.npmrc
-      - name: Verify NPM Authentication
-        if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
-        run: |
-          npm whoami || echo "NPM authentication check failed"
-          npm view vendure-plugin-nowpayments version 2>/dev/null || echo "Package does not exist yet (this is expected for first publish)"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node-version }}'
+          registry-url: 'https://registry.npmjs.org'
       - name: Release
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Starting release process..."
           echo "GitHub token available: ${{ secrets.GH_TOKEN != '' }}"
-          echo "NPM token available: ${{ secrets.NPM_TOKEN != '' }}"
+          echo "Using npm trusted publishing (OIDC)"
           npx nx release vendure-plugin-nowpayments --yes
