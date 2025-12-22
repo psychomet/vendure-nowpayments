@@ -128,16 +128,21 @@ jobs:
         with:
           node-version: '${{ matrix.node-version }}'
           registry-url: 'https://registry.npmjs.org'
-          # Explicitly disable token to force OIDC trusted publishing
-          # Trusted publisher must be configured on npmjs.com
+          # Do NOT provide token parameter - this allows OIDC trusted publishing to work
+          # If NPM_TOKEN exists in secrets (repository or environment), setup-node will use it instead of OIDC
           always-auth: false
-      - name: Remove token-based auth to force OIDC
+      - name: Verify OIDC setup and remove token if present
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.action == 'closed' && github.event.pull_request.merged == true) }}
         run: |
-          # If NPM_TOKEN exists in secrets, setup-node will use it instead of OIDC
-          # We need to remove token-based auth from .npmrc to force OIDC
+          echo "Checking authentication setup..."
           if [ -n "$NODE_AUTH_TOKEN" ]; then
-            echo "⚠️  NODE_AUTH_TOKEN is set - removing token-based auth from .npmrc"
+            echo "⚠️  NODE_AUTH_TOKEN is set - this means NPM_TOKEN exists in secrets"
+            echo ""
+            echo "To enable OIDC trusted publishing, you must remove NPM_TOKEN from:"
+            echo "1. Repository secrets: https://github.com/psychomet/vendure-nowpayments/settings/secrets/actions"
+            echo "2. Environment secrets (npm-publish): https://github.com/psychomet/vendure-nowpayments/settings/environments/npm-publish"
+            echo ""
+            echo "Removing token from .npmrc to prevent token-based auth..."
             NPMRC_LOCATIONS=("$HOME/.npmrc" "$NPM_CONFIG_USERCONFIG" "/home/runner/work/_temp/.npmrc")
             for npmrc_file in "${NPMRC_LOCATIONS[@]}"; do
               if [ -f "$npmrc_file" ]; then
@@ -148,8 +153,7 @@ jobs:
               fi
             done
             echo ""
-            echo "⚠️  IMPORTANT: Remove NPM_TOKEN from GitHub secrets to enable OIDC!"
-            echo "   Go to: https://github.com/psychomet/vendure-nowpayments/settings/secrets/actions"
+            echo "⚠️  After removing NPM_TOKEN, OIDC will be used automatically"
           else
             echo "✓ No token detected - OIDC should work if trusted publisher is configured"
           fi
