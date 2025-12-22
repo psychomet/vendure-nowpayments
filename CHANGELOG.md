@@ -1,3 +1,13 @@
+## 0.1.16 (2025-12-22)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** remove unused injects ([467902e](https://github.com/psychomet/vendure-nowpayments/commit/467902e))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.15 (2025-08-19)
 
 ### 🩹 Fixes
