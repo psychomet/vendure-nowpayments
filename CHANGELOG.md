@@ -1,3 +1,14 @@
+## 0.1.17 (2025-12-22)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** add publishConfig to package.json ([4fbf858](https://github.com/psychomet/vendure-nowpayments/commit/4fbf858))
+- **vendure-plugin-nowpayments:** fix package-lock.json ([7e2c4e1](https://github.com/psychomet/vendure-nowpayments/commit/7e2c4e1))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.16 (2025-12-22)
 
 ### 🩹 Fixes
