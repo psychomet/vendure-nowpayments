@@ -1,3 +1,7 @@
+import type { Order } from '@vendure/core';
+
+export type RedirectUrlFn = (order: Order, host: string) => string;
+
 /**
  * @description
  * The plugin can be configured using the following options:
@@ -6,6 +10,8 @@ export interface PluginInitOptions {
     apiKey: string;
     ipnSecret: string;
     host?: string;
+    getSuccessUrl?: RedirectUrlFn;
+    getCancelUrl?: RedirectUrlFn;
     title?: string;
     description?: string;
     instructions?: string;

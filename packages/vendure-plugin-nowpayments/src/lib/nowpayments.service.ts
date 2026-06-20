@@ -7,6 +7,8 @@ import {
     TransactionalConnection,
     Logger,
     Payment,
+    Customer,
+    CustomerService,
 } from '@vendure/core';
 import { NOWPAYMENTS_PLUGIN_OPTIONS, loggerCtx } from './constants';
 import { PluginInitOptions, NOWPaymentsPaymentData, NOWPaymentsInvoiceData, NOWPaymentsIPNData } from './types';
@@ -18,6 +20,7 @@ export class NOWPaymentsService {
     constructor(
         private orderService: OrderService,
         private paymentService: PaymentService,
+        private customerService: CustomerService,
         private connection: TransactionalConnection,
         @Inject(NOWPAYMENTS_PLUGIN_OPTIONS) private options: PluginInitOptions,
     ) {}
@@ -63,10 +66,11 @@ export class NOWPaymentsService {
      * This is similar to Stripe's createPaymentIntent but returns a URL instead of a client secret.
      */
     async createPaymentIntent(ctx: RequestContext, order: Order): Promise<string> {
+        const orderWithLines = await this.getOrderWithLines(ctx, order);
         if (this.useInvoices) {
-            return this.generateInvoiceUrl(ctx, order);
+            return this.generateInvoiceUrl(ctx, orderWithLines);
         } else {
-            return this.generatePaymentUrl(ctx, order);
+            return this.generatePaymentUrl(ctx, orderWithLines);
         }
     }
 
@@ -149,11 +153,30 @@ export class NOWPaymentsService {
         }
     }
 
-    private async getPaymentData(ctx: RequestContext, order: Order): Promise<NOWPaymentsPaymentData> {
-        const customer = order.customer;
-        if (!customer) {
+    private async getOrderWithLines(ctx: RequestContext, order: Order): Promise<Order> {
+        const orderWithLines = await this.orderService.findOne(ctx, order.id, [
+            'lines',
+            'lines.productVariant',
+        ]);
+        if (!orderWithLines) {
+            throw new Error(`Order not found: ${order.id}`);
+        }
+        return orderWithLines;
+    }
+
+    private async getOrderCustomer(ctx: RequestContext, order: Order): Promise<Customer> {
+        if (!order.customerId) {
             throw new Error('Order has no customer');
         }
+        const customer = await this.customerService.findOne(ctx, order.customerId);
+        if (!customer) {
+            throw new Error('Order customer not found');
+        }
+        return customer;
+    }
+
+    private async getPaymentData(ctx: RequestContext, order: Order): Promise<NOWPaymentsPaymentData> {
+        const customer = await this.getOrderCustomer(ctx, order);
 
         const orderId = this.invoicePrefix + order.code;
         const total = this.simpleTotal ? order.total : order.totalWithTax;
@@ -185,10 +208,7 @@ export class NOWPaymentsService {
     }
 
     private async getInvoiceData(ctx: RequestContext, order: Order): Promise<NOWPaymentsInvoiceData> {
-        const customer = order.customer;
-        if (!customer) {
-            throw new Error('Order has no customer');
-        }
+        const customer = await this.getOrderCustomer(ctx, order);
 
         const orderId = this.invoicePrefix + order.code;
         const total = this.simpleTotal ? order.total : order.totalWithTax;
@@ -222,11 +242,13 @@ export class NOWPaymentsService {
     }
 
     private getSuccessUrl(order: Order): string {
-        return `${this.host}/checkout/confirmation/${order.code}`;
+        const getSuccessUrl = this.options.getSuccessUrl ?? ((order, host) => `${host}/checkout/confirmation/${order.code}`);
+        return getSuccessUrl(order, this.host);
     }
 
     private getCancelUrl(order: Order): string {
-        return `${this.host}/checkout/cancel/${order.code}`;
+        const getCancelUrl = this.options.getCancelUrl ?? ((order, host) => `${host}/checkout/cancel/${order.code}`);
+        return getCancelUrl(order, this.host);
     }
 
     async processIpn(ctx: RequestContext, ipnData: NOWPaymentsIPNData, signature: string): Promise<boolean> {

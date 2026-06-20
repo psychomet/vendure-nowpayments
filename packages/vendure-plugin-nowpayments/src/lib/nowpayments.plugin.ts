@@ -62,6 +62,8 @@ export class NowpaymentsPlugin {
      *     apiKey: process.env.NOWPAYMENTS_API_KEY || '',
      *     ipnSecret: process.env.NOWPAYMENTS_IPN_SECRET || '',
      *     host: process.env.VENDURE_HOST || 'http://localhost:3000',
+     *     getSuccessUrl: (order, host) => `${host}/order/confirmation/${order.code}`,
+     *     getCancelUrl: (order, host) => `${host}/checkout`,
      *     sandbox: process.env.NOWPAYMENTS_SANDBOX === 'true',
      *     useInvoices: false,
      *     invoicePrefix: 'VC-',
