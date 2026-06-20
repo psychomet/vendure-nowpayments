@@ -4,29 +4,26 @@ A cryptocurrency payment gateway plugin for Vendure that integrates with NOWPaym
 
 ## Features
 
-- ✅ **Cryptocurrency Payments**: Accept payments in Bitcoin, Ethereum, Litecoin, and 100+ other cryptocurrencies
-- ✅ **Dual Payment Modes**: Support for both direct payment links and invoices
-- ✅ **Secure IPN Handling**: Instant Payment Notification webhook processing with HMAC signature verification
-- ✅ **Multiple Payment Statuses**: Handle finished, partially_paid, confirming, confirmed, sending, and failed payments
-- ✅ **Sandbox Mode**: Test your integration safely with sandbox endpoints
-- ✅ **Configurable Options**: Customizable invoice prefixes, total calculations, and debug settings
-- ✅ **Full IPN Storage**: Complete IPN response storage with outcome_currency tracking
-- ✅ **TypeScript Support**: Full type definitions for excellent developer experience
-- ✅ **GraphQL API**: Exposes `createNowPaymentsPaymentIntent` mutation for easy integration
-- ✅ **Automatic Payment Processing**: Payments are automatically added to orders via webhook callbacks
-- ✅ **Stripe-like Architecture**: Follows the same payment flow pattern as Vendure's Stripe plugin for consistency
+- **Cryptocurrency Payments**: Accept payments in Bitcoin, Ethereum, Litecoin, and 100+ other cryptocurrencies
+- **Dual Payment Modes**: Support for both direct payment links and invoices
+- **Secure IPN Handling**: Instant Payment Notification webhook processing with HMAC signature verification
+- **Sandbox Mode**: Test your integration safely with sandbox endpoints
+- **Configurable Redirect URLs**: Customize success and cancel redirect paths via arrow functions
+- **Configurable Options**: Customizable invoice prefixes, total calculations, and debug settings
+- **TypeScript Support**: Full type definitions including `RedirectUrlFn` and `PluginInitOptions`
+- **GraphQL API**: Exposes `createNowPaymentsPaymentIntent` mutation for easy integration
+- **Automatic Payment Processing**: Completed payments are added to orders via webhook callbacks inside a database transaction
+- **Multi-Channel Support**: IPN processing resolves the order's channel context before updating order state
 
 ## Architecture
 
-This plugin follows the same architectural pattern as Vendure's official Stripe plugin:
+This plugin follows a similar pattern to Vendure's official Stripe plugin:
 
 1. **Payment Intent Creation**: Frontend calls `createNowPaymentsPaymentIntent` mutation to get a payment URL
 2. **Customer Redirect**: Customer is redirected to NOWPayments to complete payment
-3. **Webhook Processing**: NOWPayments sends IPN webhook to `/nowpayments/ipn`
-4. **Automatic Payment Addition**: Controller uses `addPaymentToOrder` to automatically add settled payments to orders
-5. **Payment Handler**: Payment method handler processes the payment and sets appropriate state
-
-This architecture ensures consistency with other Vendure payment plugins and makes integration straightforward.
+3. **Webhook Processing**: NOWPayments sends IPN webhook to `POST /nowpayments/ipn`
+4. **Automatic Payment Addition**: Controller transitions the order to `ArrangingPayment` (if needed) and calls `addPaymentToOrder` inside a transaction
+5. **Payment Handler**: Payment method handler creates a settled payment when IPN metadata includes a `paymentId`
 
 ## Installation
 
@@ -49,7 +46,14 @@ export const config: VendureConfig = {
     NowpaymentsPlugin.init({
       apiKey: process.env.NOWPAYMENTS_API_KEY || '',
       ipnSecret: process.env.NOWPAYMENTS_IPN_SECRET || '',
+
+      // Base URL used for IPN callbacks and as the `host` argument in redirect URL functions
       host: process.env.VENDURE_HOST || 'http://localhost:3000',
+
+      // Optional: customize where NOWPayments redirects the customer after payment
+      getSuccessUrl: (order, host) => `${host}/order/confirmation/${order.code}`,
+      getCancelUrl: (order, host) => `${host}/checkout`,
+
       sandbox: process.env.NOWPAYMENTS_SANDBOX === 'true',
       useInvoices: false, // Set to true to use invoices instead of direct payment links
       invoicePrefix: 'VC-', // Must not end with a digit
@@ -66,6 +70,37 @@ export const config: VendureConfig = {
 };
 ```
 
+### Custom Redirect URLs
+
+You can customize the success and cancel URLs NOWPayments sends the customer to after payment using optional arrow functions:
+
+```ts
+import type { RedirectUrlFn } from 'vendure-plugin-nowpayments';
+
+const getSuccessUrl: RedirectUrlFn = (order, host) =>
+  `${host}/en/account/orders/${order.code}`;
+
+const getCancelUrl: RedirectUrlFn = (order, host) =>
+  `${host}/en/checkout`;
+
+NowpaymentsPlugin.init({
+  // ...
+  host: process.env.STOREFRONT_URL || 'http://localhost:3000',
+  getSuccessUrl,
+  getCancelUrl,
+});
+```
+
+Each function receives:
+
+- `order` — the Vendure `Order` entity (includes `code`, `id`, etc.)
+- `host` — the configured `host` option
+
+If omitted, the defaults are:
+
+- **Success**: `{host}/checkout/confirmation/{orderCode}`
+- **Cancel**: `{host}/checkout/cancel/{orderCode}`
+
 ## NOWPayments Setup
 
 ### 1. Create a NOWPayments Account
@@ -79,6 +114,8 @@ export const config: VendureConfig = {
 1. Set your IPN URL to: `https://yourdomain.com/nowpayments/ipn`
 2. Get your IPN secret from the NOWPayments dashboard
 3. Ensure your server is accessible via HTTPS
+
+The IPN URL is derived from the `host` option: `{host}/nowpayments/ipn`.
 
 ### 3. Environment Variables
 
@@ -99,27 +136,26 @@ NOWPAYMENTS_INVOICE_PREFIX=VC-
 
 ### Payment Flow
 
-The plugin follows a similar pattern to Stripe's payment flow:
-
 1. **Customer selects NOWPayments** during checkout
 2. **Frontend calls `createNowPaymentsPaymentIntent` mutation** to get the payment URL
 3. **Customer is redirected** to the NOWPayments payment page (direct link or invoice)
 4. **Customer pays** with their chosen cryptocurrency
 5. **NOWPayments sends IPN** webhook to your server
-6. **Payment is automatically added** to the order via `addPaymentToOrder`
-7. **Order status is updated** to `PaymentSettled` when payment is complete
+6. **Payment is automatically added** to the order via `addPaymentToOrder` (only when status is `finished`)
+7. **Order is settled** by the payment handler when the payment is created
 
 ### Using the GraphQL Mutation
 
 The plugin exposes a `createNowPaymentsPaymentIntent` mutation that returns a payment URL:
 
 ```graphql
-mutation {
+mutation CreateNowPaymentsPaymentIntent {
   createNowPaymentsPaymentIntent
 }
 ```
 
 **Response:**
+
 ```json
 {
   "data": {
@@ -131,45 +167,34 @@ mutation {
 **Example usage in your storefront:**
 
 ```typescript
-// In your checkout component
-const { data, loading, error } = useMutation(CREATE_NOWPAYMENTS_PAYMENT_INTENT);
+const CREATE_NOWPAYMENTS_PAYMENT_INTENT = gql`
+  mutation CreateNowPaymentsPaymentIntent {
+    createNowPaymentsPaymentIntent
+  }
+`;
+
+const [createPaymentIntent] = useMutation(CREATE_NOWPAYMENTS_PAYMENT_INTENT);
 
 const handlePayment = async () => {
-  try {
-    const result = await data();
-    const paymentUrl = result.createNowPaymentsPaymentIntent;
-    // Redirect customer to payment URL
-    window.location.href = paymentUrl;
-  } catch (err) {
-    console.error('Failed to create payment intent:', err);
-  }
+  const { data } = await createPaymentIntent();
+  const paymentUrl = data.createNowPaymentsPaymentIntent;
+  window.location.href = paymentUrl;
 };
 ```
 
-**GraphQL Query:**
-
-```graphql
-mutation CreateNowPaymentsPaymentIntent {
-  createNowPaymentsPaymentIntent
-}
-```
+The mutation requires the customer to be authenticated (`Permission.Owner`) and uses the active session order. The plugin loads the order's customer and line items automatically before creating the payment URL.
 
 ### Payment Statuses
 
-The plugin handles various payment statuses from NOWPayments IPN callbacks:
+The IPN webhook endpoint handles NOWPayments status updates as follows:
 
-| Status | Order State | Description |
-|--------|-------------|-------------|
-| `finished` | PaymentSettled | Payment completed successfully - payment is automatically added to order via `addPaymentToOrder` |
-| `partially_paid` | PaymentAuthorized | Partial payment received (metadata updated, payment remains authorized) |
-| `confirming` | PaymentAuthorized | Payment is being confirmed on blockchain (metadata updated) |
-| `confirmed` | PaymentAuthorized | Payment confirmed on blockchain (metadata updated) |
-| `sending` | PaymentAuthorized | Payment is being sent (metadata updated) |
-| `waiting` | PaymentAuthorized | Payment is waiting for user action (metadata updated) |
-| `expired` | PaymentDeclined | Payment has expired - payment is cancelled |
-| `failed` | PaymentDeclined | Payment failed - payment is cancelled |
+| Status | Action |
+|--------|--------|
+| `finished` | Order is transitioned to `ArrangingPayment` (if needed), payment is added via `addPaymentToOrder`, and the payment handler settles it |
+| `failed`, `expired` | Logged and acknowledged; no payment is added |
+| All other statuses (`confirming`, `confirmed`, `partially_paid`, `waiting`, etc.) | Logged and acknowledged; no payment is added |
 
-**Note:** Only `finished` status payments are automatically added to orders. Other statuses update payment metadata but don't settle the payment.
+Only `finished` payments trigger order updates. Other statuses are received so NOWPayments does not retry unnecessarily, but they do not modify the order.
 
 ### Configuration Options
 
@@ -177,17 +202,22 @@ The plugin handles various payment statuses from NOWPayments IPN callbacks:
 |--------|------|----------|---------|-------------|
 | `apiKey` | string | ✅ | - | Your NOWPayments.io API key |
 | `ipnSecret` | string | ✅ | - | Your NOWPayments.io IPN secret |
-| `host` | string | ❌ | 'http://localhost:3000' | Your Vendure server host |
-| `sandbox` | boolean | ❌ | false | Enable sandbox mode for testing |
-| `useInvoices` | boolean | ❌ | false | Use invoices instead of direct payment links |
-| `invoicePrefix` | string | ❌ | 'VC-' | Prefix for invoice numbers (must not end with digit) |
-| `simpleTotal` | boolean | ❌ | false | Use simple total calculation |
-| `allowZeroConfirm` | boolean | ❌ | true | Allow zero confirmation payments |
-| `formSubmissionMethod` | boolean | ❌ | true | Use form submission method |
+| `host` | string | ❌ | `http://localhost:3000` | Base URL for IPN callbacks and redirect URL functions |
+| `getSuccessUrl` | `RedirectUrlFn` | ❌ | `{host}/checkout/confirmation/{orderCode}` | Function that returns the success redirect URL |
+| `getCancelUrl` | `RedirectUrlFn` | ❌ | `{host}/checkout/cancel/{orderCode}` | Function that returns the cancel redirect URL |
+| `sandbox` | boolean | ❌ | `false` | Enable sandbox mode for testing |
+| `useInvoices` | boolean | ❌ | `false` | Use invoices instead of direct payment links |
+| `invoicePrefix` | string | ❌ | `VC-` | Prefix for invoice numbers (must not end with digit) |
+| `simpleTotal` | boolean | ❌ | `false` | Use simple total calculation (excludes tax from total) |
+| `allowZeroConfirm` | boolean | ❌ | `true` | Allow zero confirmation payments |
+| `formSubmissionMethod` | boolean | ❌ | `true` | Use form submission method |
+| `title` | string | ❌ | - | Payment method title |
+| `description` | string | ❌ | - | Payment method description |
+| `instructions` | string | ❌ | - | Payment method instructions |
 | `debugEmail` | string | ❌ | - | Email for debug notifications |
 | `debugPostUrl` | string | ❌ | - | URL for debug POST notifications |
-| `is_fixed_rate` | boolean | ❌ | false | Use fixed rate pricing for cryptocurrency conversions |
-| `is_fee_paid_by_user` | boolean | ❌ | false | Whether transaction fees are paid by the user |
+| `is_fixed_rate` | boolean | ❌ | `false` | Use fixed rate pricing for cryptocurrency conversions |
+| `is_fee_paid_by_user` | boolean | ❌ | `false` | Whether transaction fees are paid by the user |
 
 ### Supported Cryptocurrencies
 
@@ -207,37 +237,39 @@ The plugin extends the Vendure GraphQL API with the following:
 
 ### GraphQL Mutations
 
-- `createNowPaymentsPaymentIntent: String!` - Creates a payment intent and returns the payment URL (invoice URL if `useInvoices` is enabled, otherwise payment URL)
+- `createNowPaymentsPaymentIntent: String!` — Creates a payment intent and returns the payment URL (invoice URL if `useInvoices` is enabled, otherwise payment URL)
   - Requires: Owner permission (customer must be logged in)
   - Returns: Payment URL string that the customer should be redirected to
 
 ### Payment Method Handler
 
-- `nowpayments` - The payment method handler for NOWPayments
+- `nowpayments` — The payment method handler for NOWPayments
 
 ### IPN Webhook Endpoint
 
-- `POST /nowpayments/ipn` - Webhook endpoint for NOWPayments IPN callbacks
+- `POST /nowpayments/ipn` — Webhook endpoint for NOWPayments IPN callbacks
   - Headers: `x-nowpayments-sig` (HMAC signature for verification)
   - Body: NOWPayments IPN payload (JSON)
-  - Automatically processes payments and adds them to orders via `addPaymentToOrder`
+  - Verifies the HMAC signature before processing
+  - Resolves the order's channel and runs all order mutations inside a database transaction
+  - Adds settled payments to orders when status is `finished`
 
 ### Payment Flow URLs
 
-The plugin automatically generates the following URLs for payment flows:
+| URL | Source | Default |
+|-----|--------|---------|
+| Success URL | `getSuccessUrl(order, host)` | `{host}/checkout/confirmation/{orderCode}` |
+| Cancel URL | `getCancelUrl(order, host)` | `{host}/checkout/cancel/{orderCode}` |
+| IPN URL | `{host}/nowpayments/ipn` | Fixed path on your Vendure server |
 
-- **Success URL**: `{host}/checkout/confirmation/{orderCode}` - Redirected to after successful payment
-- **Cancel URL**: `{host}/checkout/cancel/{orderCode}` - Redirected to if payment is cancelled
-- **IPN URL**: `{host}/nowpayments/ipn` - Webhook endpoint for payment notifications
-
-**Note**: Replace `{host}` with your actual Vendure server URL (e.g., `https://yourdomain.com`).
+**Note:** For redirect URLs, `host` is typically your storefront URL (e.g. `https://shop.example.com`). For IPN, `host` must be your publicly accessible Vendure server URL.
 
 ## Security Features
 
 - **HMAC Signature Verification**: All IPN requests are verified using SHA512 HMAC before processing
-- **Order Validation**: Payment amounts and currencies are validated against order totals
 - **Secure API Communication**: All API calls use HTTPS
-- **Transaction Safety**: Webhook processing uses database transactions to ensure data consistency
+- **Transaction Safety**: Webhook processing uses `TransactionalConnection.withTransaction()` so order state changes and payment creation are atomic
+- **Channel-Aware Processing**: IPN handler resolves the order's channel before transitioning state or adding payments
 - **Error Logging**: Comprehensive error logging for debugging
 - **Owner-Only Mutations**: The `createNowPaymentsPaymentIntent` mutation requires owner permission (customer must be authenticated)
 
@@ -265,27 +297,33 @@ npm run dev
 
 ### Common Issues
 
-1. **IPN not received:**
-    - Check your server is accessible via HTTPS
-    - Verify IPN URL is correct in NOWPayments dashboard
-    - Check server logs for errors
+1. **IPN not received**
+   - Check your server is accessible via HTTPS
+   - Verify IPN URL is correct in NOWPayments dashboard (`{host}/nowpayments/ipn`)
+   - Check server logs for errors
 
-2. **Invalid signature errors:**
-    - Verify IPN secret is correct
-    - Ensure HMAC calculation is working properly
-    - Check for encoding issues
+2. **Invalid signature errors**
+   - Verify IPN secret is correct
+   - Ensure HMAC calculation is working properly
+   - Check for encoding issues
 
-3. **Payment not settling:**
-    - Check payment status in NOWPayments dashboard (must be `finished`)
-    - Verify order ID format matches expected pattern (includes invoice prefix if used)
-    - Review server logs for processing errors
-    - Ensure IPN webhook is being received and processed
-    - Check that payment status is `finished` (only finished payments are added to orders)
+3. **Payment not settling**
+   - Check payment status in NOWPayments dashboard (must be `finished`)
+   - Verify order ID format matches expected pattern (includes `invoicePrefix` if configured)
+   - Review server logs for processing errors
+   - Ensure the NOWPayments payment method is enabled in the Admin UI
 
-4. **Sandbox mode issues:**
-    - Ensure `NOWPAYMENTS_SANDBOX=true` is set
-    - Use sandbox API keys for testing
-    - Check sandbox endpoints are being used
+4. **`addPaymentToOrder must be called within a transaction`**
+   - Ensure you are running a recent version of the plugin; IPN processing must use the transactional `RequestContext` from `withTransaction`
+
+5. **`Order has no customer`**
+   - The customer must be assigned to the order before creating a payment intent
+   - Guest checkout must set customer details on the order first
+
+6. **Sandbox mode issues**
+   - Ensure `sandbox: true` is set in plugin options
+   - Use sandbox API keys for testing
+   - Check sandbox endpoints are being used
 
 ### Debug Mode
 
@@ -316,8 +354,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Changelog
 
-See [CHANGELOG.md](./CHANGELOG.md) for a list of changes between versions. 
-
-Add Release commit
-
-## OK
+See [CHANGELOG.md](./CHANGELOG.md) for a list of changes between versions.

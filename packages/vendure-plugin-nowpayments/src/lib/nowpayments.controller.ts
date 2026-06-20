@@ -55,127 +55,122 @@ export class NOWPaymentsController {
             return;
         }
 
-        // Extract order code from order_id (remove invoice prefix)
-        const orderCode = order_id.replace(this.nowPaymentsService.invoicePrefix, '');
+        if (!this.nowPaymentsService.verifySignature(body, signature)) {
+            Logger.error(`${signatureErrorMessage} for order ${order_id}`, loggerCtx);
+            res.status(HttpStatus.BAD_REQUEST).send(signatureErrorMessage);
+            return;
+        }
 
-        // Create initial context with default channel to find the order
+        if (payment_status === 'failed' || payment_status === 'expired') {
+            const orderCode = order_id.replace(this.nowPaymentsService.invoicePrefix, '');
+            Logger.warn(`Payment for order ${orderCode} ${payment_status}`, loggerCtx);
+            res.status(HttpStatus.OK).send('Ok');
+            return;
+        }
+
+        if (payment_status !== 'finished') {
+            const orderCode = order_id.replace(this.nowPaymentsService.invoicePrefix, '');
+            Logger.info(`Received ${payment_status} status update for order ${orderCode}`, loggerCtx);
+            res.status(HttpStatus.OK).send('Ok');
+            return;
+        }
+
+        const orderCode = order_id.replace(this.nowPaymentsService.invoicePrefix, '');
         const defaultChannel = await this.channelService.getDefaultChannel();
-        const initialCtx = await this.requestContextService.create({
+        const lookupCtx = await this.requestContextService.create({
             apiType: 'admin',
             channelOrToken: defaultChannel.token,
         });
 
-        await this.connection.withTransaction(initialCtx, async (ctx: RequestContext) => {
-            const order = await this.orderService.findOneByCode(ctx, orderCode);
-
-            if (!order) {
-                throw new Error(
-                    `Unable to find order ${orderCode}, unable to process IPN for payment ${body.payment_id}!`,
-                );
-            }
-
-            // Verify signature
-            if (!this.nowPaymentsService.verifySignature(body, signature)) {
-                Logger.error(`${signatureErrorMessage} for order ${orderCode}`, loggerCtx);
-                res.status(HttpStatus.BAD_REQUEST).send(signatureErrorMessage);
-                return;
-            }
-
-            // Handle failed/expired payments
-            if (payment_status === 'failed' || payment_status === 'expired') {
-                const message = `Payment for order ${orderCode} ${payment_status}`;
-                Logger.warn(message, loggerCtx);
-                res.status(HttpStatus.OK).send('Ok');
-                return;
-            }
-
-            // Only process 'finished' status - this is when payment is complete
-            if (payment_status !== 'finished') {
-                Logger.info(`Received ${payment_status} status update for order ${orderCode}`, loggerCtx);
-                res.status(HttpStatus.OK).send('Ok');
-                return;
-            }
-
-            // Use default channel for context (similar to Stripe's fallback approach)
-            const ctxWithOrderChannel = await this.requestContextService.create({
-                apiType: 'admin',
-                channelOrToken: defaultChannel.token,
-                languageCode: LanguageCode.en,
-                req: request as unknown as Request,
-            });
-
-            // Transition order to ArrangingPayment if needed
-            if (order.state !== 'ArrangingPayment' && order.state !== 'ArrangingAdditionalPayment') {
-                let transitionToStateResult = await this.orderService.transitionToState(
-                    ctxWithOrderChannel,
-                    order.id,
-                    'ArrangingPayment',
-                );
-
-                // If the channel specific context fails, try to use the default channel context
-                if (transitionToStateResult instanceof OrderStateTransitionError) {
-                    const defaultChannelCtx = await this.requestContextService.create({
-                        apiType: 'admin',
-                        channelOrToken: defaultChannel.token,
-                        languageCode: LanguageCode.en,
-                        req: request as unknown as Request,
-                    });
-
-                    transitionToStateResult = await this.orderService.transitionToState(
-                        defaultChannelCtx,
-                        order.id,
-                        'ArrangingPayment',
-                    );
-                }
-
-                // If the order is still not in the ArrangingPayment state, log an error
-                if (transitionToStateResult instanceof OrderStateTransitionError) {
-                    Logger.error(
-                        `Error transitioning order ${orderCode} to ArrangingPayment state: ${transitionToStateResult.message}`,
-                        loggerCtx,
-                    );
-                    return;
-                }
-            }
-
-            const paymentMethod = await this.getPaymentMethod(ctxWithOrderChannel);
-
-            const addPaymentToOrderResult = await this.orderService.addPaymentToOrder(
-                ctxWithOrderChannel,
-                order.id,
-                {
-                    method: paymentMethod.code,
-                    metadata: {
-                        paymentId: body.payment_id,
-                        invoiceId: body.invoice_id,
-                        paymentStatus: payment_status,
-                        actuallyPaid: body.actually_paid,
-                        payAmount: body.pay_amount,
-                        payCurrency: body.pay_currency,
-                        outcomeAmount: body.outcome_amount,
-                        outcomeCurrency: body.outcome_currency,
-                        orderId: order_id,
-                    },
-                },
-            );
-
-            if (!(addPaymentToOrderResult instanceof Order)) {
-                Logger.error(
-                    `Error adding payment to order ${orderCode}: ${addPaymentToOrderResult.message}`,
-                    loggerCtx,
-                );
-                return;
-            }
-
-            Logger.info(
-                `NOWPayments payment id ${body.payment_id} added to order ${orderCode}`,
+        const order = await this.orderService.findOneByCode(lookupCtx, orderCode);
+        if (!order) {
+            Logger.error(
+                `Unable to find order ${orderCode}, unable to process IPN for payment ${body.payment_id}!`,
                 loggerCtx,
             );
+            res.status(HttpStatus.BAD_REQUEST).send(`Order ${orderCode} not found`);
+            return;
+        }
+
+        const orderChannels = await this.orderService.getOrderChannels(lookupCtx, order);
+        const orderChannel = orderChannels[0] ?? defaultChannel;
+        const channelCtx = await this.requestContextService.create({
+            apiType: 'admin',
+            channelOrToken: orderChannel.token,
+            languageCode: LanguageCode.en,
+            req: request as unknown as Request,
         });
 
-        // Send the response status only if we didn't send anything yet.
-        if (!res.headersSent) {
+        try {
+            await this.connection.withTransaction(channelCtx, async (ctx: RequestContext) => {
+                const orderInTx = await this.orderService.findOneByCode(ctx, orderCode);
+                if (!orderInTx) {
+                    throw new Error(
+                        `Unable to find order ${orderCode}, unable to process IPN for payment ${body.payment_id}!`,
+                    );
+                }
+
+                if (
+                    orderInTx.state !== 'ArrangingPayment' &&
+                    orderInTx.state !== 'ArrangingAdditionalPayment'
+                ) {
+                    const transitionToStateResult = await this.orderService.transitionToState(
+                        ctx,
+                        orderInTx.id,
+                        'ArrangingPayment',
+                    );
+
+                    if (transitionToStateResult instanceof OrderStateTransitionError) {
+                        Logger.error(
+                            `Error transitioning order ${orderCode} to ArrangingPayment state: ${transitionToStateResult.message}`,
+                            loggerCtx,
+                        );
+                        throw transitionToStateResult;
+                    }
+                }
+
+                const paymentMethod = await this.getPaymentMethod(ctx);
+
+                const addPaymentToOrderResult = await this.orderService.addPaymentToOrder(
+                    ctx,
+                    orderInTx.id,
+                    {
+                        method: paymentMethod.code,
+                        metadata: {
+                            paymentId: body.payment_id,
+                            invoiceId: body.invoice_id,
+                            paymentStatus: payment_status,
+                            actuallyPaid: body.actually_paid,
+                            payAmount: body.pay_amount,
+                            payCurrency: body.pay_currency,
+                            outcomeAmount: body.outcome_amount,
+                            outcomeCurrency: body.outcome_currency,
+                            orderId: order_id,
+                        },
+                    },
+                );
+
+                if (!(addPaymentToOrderResult instanceof Order)) {
+                    Logger.error(
+                        `Error adding payment to order ${orderCode}: ${addPaymentToOrderResult.message}`,
+                        loggerCtx,
+                    );
+                    throw addPaymentToOrderResult;
+                }
+
+                Logger.info(
+                    `NOWPayments payment id ${body.payment_id} added to order ${orderCode}`,
+                    loggerCtx,
+                );
+            });
+
             res.status(HttpStatus.OK).send('Ok');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            Logger.error(`IPN processing failed for order ${orderCode}: ${message}`, loggerCtx);
+            if (!res.headersSent) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('IPN processing failed');
+            }
         }
     }
 
@@ -190,4 +185,4 @@ export class NOWPaymentsController {
 
         return method;
     }
-} 
+}
