@@ -1,3 +1,13 @@
+## 0.1.33 (2026-06-20)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** fix transaction controller ipn ([61bf683](https://github.com/psychomet/vendure-nowpayments/commit/61bf683))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.32 (2026-06-20)
 
 ### 🩹 Fixes
