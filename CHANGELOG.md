@@ -1,3 +1,14 @@
+## 0.1.30 (2026-06-20)
+
+### 🩹 Fixes
+
+- **vendure-plugin-nowpayments:** fix something changes on new updates vendure ([5960eee](https://github.com/psychomet/vendure-nowpayments/commit/5960eee))
+- **vendure-plugin-nowpayments:** wip for release ([ce1952c](https://github.com/psychomet/vendure-nowpayments/commit/ce1952c))
+
+### ❤️ Thank You
+
+- Psychomet
+
 ## 0.1.29 (2025-12-22)
 
 ### 🩹 Fixes
